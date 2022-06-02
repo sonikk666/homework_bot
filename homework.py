@@ -12,16 +12,6 @@ from exceptions import ErrorApi, MyErrorSendMessage, StatusCodeError
 
 load_dotenv()
 
-if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(message)s - %(name)s'
-    )
-    logger.addHandler(handler)
-    handler.setFormatter(formatter)
-
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -37,6 +27,24 @@ HOMEWORK_STATUSES = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.',
 }
+
+
+def get_logger():
+    """Задаём параметры логирования."""
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    fileHandler = logging.FileHandler(
+        'bot_logger.log', mode='a', encoding='UTF-8'
+    )
+    streamHandler = logging.StreamHandler(stream=sys.stdout)
+    formatter = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(message)s - %(name)s'
+    )
+    logger.addHandler(fileHandler)
+    logger.addHandler(streamHandler)
+    fileHandler.setFormatter(formatter)
+    streamHandler.setFormatter(formatter)
+    return logger
 
 
 def send_message_error(bot, message):
@@ -151,6 +159,7 @@ def main():
 
 
 if __name__ == '__main__':
+    logger = get_logger()
     try:
         logger.debug('Запуск программы')
         main()
