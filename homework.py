@@ -15,7 +15,7 @@ load_dotenv()
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler('bot_logger.log', mode='a', encoding='UTF-8')
+    handler = logging.StreamHandler()
     formatter = logging.Formatter(
         '%(asctime)s [%(levelname)s] %(message)s - %(name)s'
     )
