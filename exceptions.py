@@ -13,7 +13,7 @@ class ErrorApi(Error):
     pass
 
 
-class MyErrorSendMessage(Error):
+class ErrorSendMessage(Error):
     """Ошибка при отправке сообщения."""
 
     pass

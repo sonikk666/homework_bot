@@ -8,7 +8,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import ErrorApi, MyErrorSendMessage, StatusCodeError
+from exceptions import ErrorApi, ErrorSendMessage, StatusCodeError
 
 load_dotenv()
 
@@ -47,7 +47,7 @@ def get_logger():
     return logger
 
 
-def send_message_error(bot, message):
+def send_error_message(bot, message):
     """Отправка сообщения об ошибке в телеграмм."""
     bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     while True:
@@ -61,7 +61,7 @@ def send_message(bot, message):
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info('Сообщение отправлено в чат.')
     except Exception as error:
-        raise MyErrorSendMessage(f'Сбой при отправке сообщения - {error}')
+        raise ErrorSendMessage(f'Сбой при отправке сообщения - {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -77,17 +77,17 @@ def get_api_answer(current_timestamp):
                 'Ошибка при запросе к основному API - '
                 f'ERROR {homework_statuses.status_code}'
             )
+        return homework_statuses.json()
+
     except StatusCodeError as error:
         raise StatusCodeError(f'{error}') from error
     except Exception as error:
         raise ErrorApi(f'Ошибка API - {error}')
 
-    return homework_statuses.json()
-
 
 def check_response(response):
     """Проверка корректности ответа API."""
-    if list(response) != ['homeworks', 'current_date']:
+    if 'current_date' and 'homeworks' not in response:
         raise TypeError(f'Неверный формат данных {type(response)}')
     if not isinstance(response, dict):
         raise TypeError(f'Неверный формат данных {type(response)}')
@@ -108,7 +108,7 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверка доступности переменных окружения."""
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+    if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         return True
     return False
 
@@ -116,8 +116,8 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logger.critical('Отсутсвует одна из переменных окружения')
-        sys.exit(logger.debug('Бот не запустился - завершение программы'))
+        logger.critical('Отсутствует одна из переменных окружения')
+        sys.exit('Бот не запустился - завершение программы')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     logger.debug('Бот запущен успешно')
@@ -135,25 +135,14 @@ def main():
             current_timestamp = response.get('current_date')
             time.sleep(RETRY_TIME)
 
-        except StatusCodeError as error:
-            message = f'StatusCodeError: {error}'
-            send_message_error(bot, message)
-
-        except ErrorApi as error:
-            message = f'ErrorApi: {error}'
-            send_message_error(bot, message)
-
-        except MyErrorSendMessage as error:
-            message = f'MyErrorSendMessage: {error}'
-            send_message_error(bot, message)
-
-        except TypeError as error:
-            message = f'TypeError: {error}'
-            send_message_error(bot, message)
+        except ErrorSendMessage as error:
+            message = f'ErrorSendMessage: {error}'
+            logger.error(message)
+            time.sleep(RETRY_TIME)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message_error(bot, message)
+            send_error_message(bot, message)
         else:
             logger.debug('Нет новых статусов')
 
