@@ -47,14 +47,6 @@ def get_logger():
     return logger
 
 
-def send_error_message(bot, message):
-    """Отправка сообщения об ошибке в телеграмм."""
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-    while True:
-        logger.error(message)
-        time.sleep(RETRY_TIME)
-
-
 def send_message(bot, message):
     """Отправка сообщения в телеграмм."""
     try:
@@ -142,7 +134,11 @@ def main():
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_error_message(bot, message)
+            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+            while True:
+                logger.error(message)
+                time.sleep(RETRY_TIME)
+
         else:
             logger.debug('Нет новых статусов')
 
