@@ -51,7 +51,7 @@ def send_message(bot, message):
     """Отправка сообщения в телеграмм."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logger.info('Сообщение отправлено в чат.')
+        logger.info('Информация отправлена в чат.')
     except Exception as error:
         raise ErrorSendMessage(f'Сбой при отправке сообщения - {error}')
 
@@ -100,16 +100,18 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверка доступности переменных окружения."""
-    if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
-        return True
-    return False
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def main():
     """Основная логика работы бота."""
+    previous_report = {'status': None}
+    current_report = {'status': None}
+
     if not check_tokens():
         logger.critical('Отсутствует одна из переменных окружения')
-        sys.exit('Бот не запустился - завершение программы')
+        logger.debug('Бот не запустился - завершение программы')
+        sys.exit(0)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     logger.debug('Бот запущен успешно')
@@ -122,25 +124,32 @@ def main():
             if homeworks:
                 homework = homeworks[0]
                 message = parse_status(homework)
-                send_message(bot, message)
+                logger.info(message)
 
+                current_report['status'] = message
+                if current_report != previous_report:
+                    send_message(bot, message)
+                    previous_report = current_report.copy()
+            else:
+                current_report['status'] = 'Нет новых статусов'
+                logger.debug('Нет новых статусов')
             current_timestamp = response.get('current_date')
-            time.sleep(RETRY_TIME)
 
         except ErrorSendMessage as error:
-            message = f'ErrorSendMessage: {error}'
-            logger.error(message)
-            time.sleep(RETRY_TIME)
+            error_message = f'ErrorSendMessage: {error}'
+            logger.error(error_message)
 
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-            while True:
-                logger.error(message)
-                time.sleep(RETRY_TIME)
+            error_message = f'Сбой в работе программы: {error}'
+            logger.error(error_message)
 
-        else:
-            logger.debug('Нет новых статусов')
+            current_report['status'] = error_message
+            if current_report != previous_report:
+                send_message(bot, error_message)
+                previous_report = current_report.copy()
+
+        finally:
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':

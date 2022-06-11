@@ -1,27 +1,27 @@
 """Мои исключения."""
 
 
-class Error(Exception):
-    """Мой общий класс ошибок."""
+class HomeworksBotError(Exception):
+    """Общий класс ошибок HomeworkBot."""
 
     pass
 
 
-class ErrorApi(Error):
+class ErrorApi(HomeworksBotError):
     """Общая ошибка ответа API."""
 
     pass
 
 
-class ErrorSendMessage(Error):
+class ErrorSendMessage(HomeworksBotError):
     """Ошибка при отправке сообщения."""
 
     pass
 
 
-class StatusCodeError(Error):
+class StatusCodeError(HomeworksBotError):
     """Ошибка при запросе к основному API.
-    Статус не 200.
+    Статус_код не 200.
     """
 
     pass
